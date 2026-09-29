@@ -1,21 +1,26 @@
-# 🎮 VideoGame
+# 🎮 Optimal Paths Games
 
 Colección de minijuegos web de un solo archivo (HTML + CSS + JavaScript) inspirados en el **principio de Fermat**: la luz, o una pelota, siempre toma el camino más corto o rápido.
 
 | Juego | Descripción | Jugadores |
 |---|---|---|
 | [Game1 · Trayectoria Óptima](./Game1) | Elige el punto A–G que da el recorrido más corto | 1 |
+| [Game2](./Game2) | En desarrollo | — |
 | [Game3 · Fermat's Light: Co-Op](./Game3) | Guía láseres con espejos hasta el objetivo central | 2 (local) |
 
 ## Estructura
 
 ```
-VideoGame/
+optimal-paths-games/
 ├── Game1/
 │   ├── index.html                     # Trayectoria Óptima
 │   └── README.md
-└── Game3/
-    └── fermat_s_light_co_op_v3.html   # Fermat's Light: Co-Op (V3)
+├── Game2/
+│   └── index.html                     # En desarrollo
+├── Game3/
+│   └── fermat_s_light_co_op_v3.html   # Fermat's Light: Co-Op (V3)
+├── LICENSE
+└── README.md
 ```
 
 ## Ejecutar
@@ -23,11 +28,12 @@ VideoGame/
 Clona el repositorio y abre el HTML del juego en un navegador moderno:
 
 ```bash
-git clone https://github.com/alextristanc/VideoGame.git
-cd VideoGame
+git clone https://github.com/alextristanc/optimal-paths-games.git
+cd optimal-paths-games
 ```
 
 - **Game1:** abre `Game1/index.html`. Sin dependencias ni conexión.
+- **Game2:** aún en desarrollo.
 - **Game3:** abre `Game3/fermat_s_light_co_op_v3.html`. Requiere internet para cargar Tailwind (CDN), Tone.js y la fuente Press Start 2P.
 
 No hace falta servidor ni proceso de build.
@@ -85,3 +91,15 @@ Cada pulsación de espejo alterna la casilla: **vacía → `/` → `\` → vací
 - Canvas 2D para el tablero y los láseres.
 - [Tone.js](https://tonejs.github.io/) para música y efectos.
 - Tailwind CSS (CDN) y la fuente Press Start 2P.
+
+---
+
+## Licencia
+
+Distribuido bajo la licencia [MIT](./LICENSE).
+
+© 2026 Equipo de Optimal Paths Games:
+
+- David Alejandro Tristán Contreras ([@alextristanc](https://github.com/alextristanc))
+- <Nombre del integrante 2>
+- <Nombre del integrante 3>
