@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trayectoria Óptima</title>
+<style>
+:root{--bg:#f2f2f2;--card:#fff;--ink:#17202a;--mute:#667085;--line:#ddd;--acc:#635bff;--ok:#12b76a;--bad:#f04438;--soft:#f6f6f7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111318;--card:#1a1d24;--ink:#e8eaf0;--mute:#98a2b3;--line:#2d323c;--soft:#232730;--acc:#8b85ff}}
+:root[data-theme="dark"]{--bg:#111318;--card:#1a1d24;--ink:#e8eaf0;--mute:#98a2b3;--line:#2d323c;--soft:#232730;--acc:#8b85ff}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,sans-serif;display:flex;justify-content:center;padding:16px}
+.game{width:min(750px,100%)}
+.header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+h1{font-size:22px;margin:0}.sub{color:var(--mute);font-size:14px;margin-top:4px}
+.meta{text-align:right;font-size:13px;color:var(--mute)}.meta b{color:var(--ink)}
+.dot{display:inline-block;width:12px;height:12px;border:2px solid var(--ink);border-radius:50%;margin-left:5px;vertical-align:middle}
+.dot.used{background:var(--mute)}
+.area{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px}
+svg{display:block;width:100%;height:auto;border-radius:10px}
+.ink{stroke:var(--ink);fill:none}.fillink{fill:var(--ink)}
+.pt{cursor:pointer;outline:none}.pt circle{fill:var(--card);stroke:var(--ink);stroke-width:2.5}
+.pt text{font-size:15px;font-weight:bold;fill:var(--ink);text-anchor:middle}
+.pt:hover circle,.pt:focus circle{fill:var(--soft);stroke:var(--acc)}
+.pt.sel circle{fill:var(--acc);stroke:var(--acc)}.pt.opt circle{stroke:var(--ok);stroke-width:4}
+.pt.locked{cursor:default}
+.live{display:flex;flex-wrap:wrap;gap:6px 24px;margin:10px 3px 0;font-size:14px;color:var(--mute);font-variant-numeric:tabular-nums}.live b{color:var(--ink);font-size:16px}
+.hint{color:var(--mute);font-size:13px;margin:10px 3px 0}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.status{color:var(--mute);font-size:14px}
+button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:bold;cursor:pointer}
+button:hover{background:var(--soft)}
+.result{margin-top:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.verdict{font-size:17px;font-weight:bold}.verdict.ok{color:var(--ok)}.verdict.bad{color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stat{background:var(--soft);padding:10px;border-radius:8px}
+.stat span{display:block;color:var(--mute);font-size:11px}.stat strong{display:block;font-size:17px;margin-top:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+.tbl thead th{color:var(--mute);font-size:11px;font-weight:normal}.tbl tbody th{font-weight:bold}
+.tbl tr:last-child>*{border-bottom:0}.tbl .o>*{color:var(--ok)}
+@media (max-width:600px){.stats{grid-template-columns:1fr}.controls{flex-direction:column;align-items:stretch}.meta{text-align:left}}
+</style>
+</head>
+<body>
+<div class="game">
+  <div class="header">
+    <div>
+      <h1>Encuentra la trayectoria óptima</h1>
+      <div class="sub">Elige el punto que produzca el menor recorrido.</div>
+    </div>
+    <div class="meta">
+      <div>Intentos: <span id="dots"></span></div>
+      <div>Aciertos <b id="hits">0</b>/<b id="rounds">0</b> · Racha <b id="streak">0</b> · Mejor <b id="best">0</b></div>
+    </div>
+  </div>
+
+  <div class="area">
+    <svg id="scene" viewBox="0 0 700 410" role="img" aria-label="Juego de trayectoria">
+      <line x1="70" y1="335" x2="630" y2="335" class="ink" stroke-width="3"/>
+      <g id="paths"></g>
+      <g id="player" class="ink" stroke-width="4" stroke-linecap="round">
+        <circle cx="105" cy="85" r="16" style="fill:var(--card)" stroke-width="3"/>
+        <path d="M105 101V145M105 112L78 128M105 112L132 128M105 145L82 173M105 145L128 173"/>
+      </g>
+      <g id="target" class="ink">
+        <circle cx="480" cy="85" r="29" style="fill:var(--card)" stroke-width="4"/>
+        <circle cx="480" cy="85" r="19" stroke-width="3"/>
+        <circle cx="480" cy="85" r="7" class="fillink"/>
+      </g>
+      <circle id="ball" r="7" fill="var(--acc)"/>
+      <g id="points"></g>
+    </svg>
+    <div class="live" aria-hidden="true">
+      <div>Tiempo: <b id="liveT">0.00</b> s</div>
+      <div>Distancia: <b id="liveD">0.0</b> u</div>
+    </div>
+    <div class="hint">Haz clic o pulsa A–G en el teclado. La velocidad es constante: menos distancia = menos tiempo.</div>
+  </div>
+
+  <div class="controls">
+    <div class="status" id="status" aria-live="polite"></div>
+    <button id="reset" type="button">Nueva ronda</button>
+  </div>
+  <div id="result" class="result" hidden></div>
+  <div id="cmp" class="result" hidden>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th></th><th>Punto</th><th>Tiempo</th><th>Distancia</th></tr></thead>
+        <tbody id="cmpBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg", SPEED = 115, LINE_Y = 335, MAX = 2;
+const $ = id => document.getElementById(id);
+const ball = $("ball"), statusEl = $("status"), resultEl = $("result");
+const letters = "ABCDEFG".split(""), xs = [145, 215, 285, 355, 425, 495, 565];
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+let player, target, points, tries, animating, raf;
+let stats = { rounds: 0, hits: 0, streak: 0, best: 0 };
+try { Object.assign(stats, JSON.parse(localStorage.getItem("trayectoria") || "{}")); } catch (e) {}
+stats = { rounds: 0, hits: 0, streak: 0, best: stats.best || 0 };
+
+function renderStats() {
+  $("hits").textContent = stats.hits; $("rounds").textContent = stats.rounds;
+  $("streak").textContent = stats.streak; $("best").textContent = stats.best;
+  $("dots").innerHTML = Array.from({ length: MAX }, (_, i) => `<span class="dot${i < tries.length ? " used" : ""}"></span>`).join("");
+}
+
+function setLive(s) { $("liveD").textContent = s.toFixed(1); $("liveT").textContent = (s / SPEED).toFixed(2); }
+
+let finished = [], over = false;
+function renderCmp() {
+  $("cmp").hidden = !finished.length;
+  if (!finished.length) return; // sin intentos: no toca `points` (aún puede no existir)
+  const row = (name, i, cls = "", empty = "—") => {
+    const p = i == null ? null : points[i];
+    return `<tr class="${cls}"><th>${name}</th>` + (p
+      ? `<td>${p.label}</td><td>${(p.total / SPEED).toFixed(2)} s</td><td>${p.total.toFixed(1)} u</td>`
+      : `<td>${empty}</td><td>${empty}</td><td>${empty}</td>`) + "</tr>";
+  };
+  const best = finished.reduce((a, b) => points[b].total < points[a].total ? b : a);
+  $("cmpBody").innerHTML =
+    row("Óptimo", over ? points.findIndex(p => p.optimal) : null, "o", "?") +
+    row("Anterior", tries.length >= 2 ? tries[0] : null) +
+    row("Mejor", best);
+}
+
+function newRound() {
+  cancelAnimationFrame(raf); animating = false; tries = []; finished = []; over = false; setLive(0); renderCmp();
+  resultEl.hidden = true; $("paths").innerHTML = "";
+  player = { x: 105, y: 75 + Math.random() * 100 };
+  target = { x: 480, y: 55 + Math.random() * 65 };
+  points = xs.map((x, i) => ({ x, y: LINE_Y, label: letters[i] }));
+  points.forEach(p => p.total = dist(player, p) + dist(p, target));
+  const min = Math.min(...points.map(p => p.total));
+  points.forEach(p => p.optimal = p.total === min);
+  $("player").setAttribute("transform", `translate(0 ${player.y - 85})`);
+  $("target").setAttribute("transform", `translate(0 ${target.y - 85})`);
+  ball.setAttribute("cx", player.x); ball.setAttribute("cy", player.y);
+  drawPoints(); renderStats();
+  statusEl.textContent = "¿Qué punto produce el recorrido más corto?";
+}
+
+function drawPoints() {
+  const g = $("points"); g.innerHTML = "";
+  points.forEach((p, i) => {
+    const el = mk("g", { class: "pt", tabindex: 0, role: "button", "aria-label": "Punto " + p.label });
+    el.append(mk("circle", { cx: p.x, cy: p.y, r: 11 }));
+    const t = mk("text", { x: p.x, y: p.y + 30 }); t.textContent = p.label; el.append(t);
+    el.addEventListener("click", () => select(i));
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); } });
+    g.append(el);
+  });
+}
+
+function select(i) {
+  if (animating || tries.length >= MAX || tries.includes(i)) return;
+  tries.push(i); renderStats(); renderCmp();
+  const p = points[i];
+  document.querySelectorAll(".pt")[i].classList.add("sel");
+  const col = tries.length === 1 ? "#f79009" : "#635bff";
+  $("paths").append(mk("polyline", { points: `${player.x},${player.y} ${p.x},${p.y} ${target.x},${target.y}`,
+    fill: "none", stroke: col, "stroke-width": 2, "stroke-opacity": .55 }));
+  statusEl.textContent = `Elegiste ${p.label}: ${(p.total / SPEED).toFixed(2)} s...`;
+  animate(p, () => {
+    finished.push(i); renderCmp();
+    if (tries.length < MAX) statusEl.textContent = `${p.label}: ${(p.total / SPEED).toFixed(2)} s. Te queda 1 intento, prueba otro punto.`;
+    else finish();
+  });
+}
+
+function animate(p, done) {
+  animating = true;
+  const d1 = dist(player, p), total = p.total, dur = total / SPEED * 1000, t0 = performance.now();
+  (function step(now) {
+    const s = Math.min((now - t0) / dur, 1) * total;
+    const [a, b, k] = s <= d1 ? [player, p, d1 ? s / d1 : 1] : [p, target, (s - d1) / (total - d1)];
+    ball.setAttribute("cx", a.x + (b.x - a.x) * k); ball.setAttribute("cy", a.y + (b.y - a.y) * k);
+    setLive(s);
+    if (s < total) raf = requestAnimationFrame(step); else { animating = false; done(); }
+  })(t0);
+}
+
+function finish() {
+  const opt = points.find(p => p.optimal);
+  const best = tries.map(i => points[i]).reduce((a, b) => b.total < a.total ? b : a);
+  const tOpt = opt.total / SPEED, tYou = best.total / SPEED, gap = tYou - tOpt;
+  const hit = best.optimal;
+  stats.rounds++; if (hit) { stats.hits++; stats.streak++; } else stats.streak = 0;
+  if (stats.streak > stats.best) { stats.best = stats.streak; try { localStorage.setItem("trayectoria", JSON.stringify({ best: stats.best })); } catch (e) {} }
+  document.querySelectorAll(".pt").forEach((el, i) => { el.classList.add("locked"); if (points[i].optimal) el.classList.add("opt"); });
+  $("paths").append(mk("polyline", { points: `${player.x},${player.y} ${opt.x},${opt.y} ${target.x},${target.y}`,
+    fill: "none", stroke: "#12b76a", "stroke-width": 3, "stroke-dasharray": "6 5" }));
+  resultEl.hidden = false;
+  resultEl.innerHTML = `<div class="verdict ${hit ? "ok" : "bad"}">${hit ? "¡Trayectoria óptima!" : "Casi: el óptimo era " + opt.label}</div>
+    <div class="sub">Diferencia con el óptimo: <b>${hit ? "0.00 s" : "+" + gap.toFixed(2) + " s (" + (gap / tOpt * 100).toFixed(1) + "%)"}</b></div>`;
+  over = true; renderCmp(); statusEl.textContent = "Ronda terminada."; renderStats();
+}
+
+$("reset").addEventListener("click", newRound);
+document.addEventListener("keydown", e => {
+  const i = letters.indexOf(e.key.toUpperCase());
+  if (i >= 0 && e.key.length === 1) select(i);
+  else if (e.key === "Enter" && tries.length >= MAX && !animating) newRound();
+});
+newRound();
+</script>
+</body>
+</html>
